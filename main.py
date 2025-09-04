@@ -1,10 +1,26 @@
 from matplotlib import pyplot as plt
-from typing import List, Tuple
-from agents_models.models import car_agent, car_space, car_model, semaforo_agent
+from utils.car_utils import car_agent
 import agentpy as ap
-import asyncio
-from plot_utils import *
+from utils.plot_utils import *
+from datetime import datetime
+from utils.model import car_model
+import json
 
+def save_data(model:car_model, filename:str):
+    data = model.get_data()
+
+    processing_time = model.end_time - model.start_time
+    total_seconds = int(processing_time.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    model.processing_time_str = f"{hours}:{minutes}:{seconds}"
+
+    data["processing_time"] = model.processing_time_str
+
+    with open(f"{filename}.json", "w") as f:
+        json.dump(data, f, indent=4)
+    
 def plot_animation(model:car_model, ax):
     plot_map(ax)
     plot_semaforos(ax, model.semaforos_manager.semaforos)
@@ -23,10 +39,33 @@ def run_animation():
     fig, ax = plt.subplots()
     fig.set_dpi(100)
     fig.set_size_inches(50, 50)
-    params = {"steps": 12000, "size": size}
+
+    follow_sequence = True
+
+    params = {
+        "steps": 2000, 
+        "size": size, 
+        "lane_width": lane_width,
+        "mode": "fixed",
+        "follow_sequence": follow_sequence
+    }
+    
     model = car_model(params)
+    
+    model.start_time = datetime.now()
+    start_time_str = model.start_time.time().strftime("%H:%M:%S")
+    print(f"starting time:      {start_time_str}")
 
     anim = ap.animate(model, fig, ax, plot_animation)
-    anim.save("animation2.mp4")
- 
+    model.end_time = datetime.now()
+
+    m = params["mode"]
+    filename = f"{m} {str(follow_sequence)}"
+    anim.save(f"{filename}.mp4")
+
+    save_data(model, filename)
+
+    print(f"took {model.processing_time_str}")
+
+
 run_animation()
