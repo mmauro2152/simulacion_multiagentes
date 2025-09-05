@@ -12,7 +12,7 @@ class car_model(Model):
         self.environment = car_space(self, (self.size, self.size))
         self.speed = 0.25
 
-        all_routes = create_routes()
+        all_routes = create_routes(self.size)
         self.routes = all_routes.routes
         self.route_colors = all_routes.colors
         self.top_routes = all_routes.top_routes
@@ -21,7 +21,7 @@ class car_model(Model):
         self.left_routes = all_routes.left_routes
         self.mode = self.p["mode"]
         self.semaforos_manager = semaforo_manager(self, self.environment, self.create_semaforos())
-        self.semaforos_manager.follow_sequence = self.p["follow_sequence"]
+        self.semaforos_manager.semaforos[0].change_phase("green")
         self.active_cars:List[Set[car_agent]] = [set(), set(), set(), set()]
 
         self.environment.add_agents([car_spawner(self, self.environment)])

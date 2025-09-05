@@ -170,7 +170,7 @@ class car_agent(Agent):
             if self.state == "waiting":
                 self.semaforo.queue -= 1
                 self.total_wait_time = self.model.t - self.waiting_since
-
+            
             self.semaforo.throughput[-1] += 1
             self.state = "finish"
 

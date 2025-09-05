@@ -2,7 +2,6 @@ from typing import List, Tuple
 import matplotlib.pyplot as plt
 
 lane_width = 20
-size = 500
 
 class route:
     x:List[float]
@@ -10,7 +9,7 @@ class route:
     points:List[Tuple[float,float]]
     starting_point:Tuple[float, float]
     index:int = 0
-    cross_val:float = (size - lane_width) / 2
+    cross_val:float = 0
     cross_ax:int = 0
 
     def __init__(self, x:List[float], y:List[float]):
@@ -37,7 +36,7 @@ class routes:
         self.bot_routes:List[route] = all_routes[2]
         self.left_routes:List[route] = all_routes[3]
 
-def plot_map(ax):
+def plot_map(ax, size):
     # limite de calles
     color = "black"
     left_top_corner_x = [0, 10 + (size - lane_width * 2) / 2, 10 + (size - lane_width * 2) / 2]
@@ -99,7 +98,7 @@ def plot_map(ax):
     ax.plot(right_h_lane_x, h_lane_top_y, color, linestyle="--")
     ax.plot(top_right_h_lane_x, h_lane_bot_y, color, linestyle="--")
 
-def create_routes():
+def create_routes(size):
     bot_routes:List[route] = [
         route([27.5, 27.5, 40], [0, 17.5, 17.5]),
         route([27.5, 27.5], [0, 40]),
@@ -163,10 +162,17 @@ def create_routes():
 
     return routes(all_routes)
 
-def plot_semaforos(ax, semaforos):
+def plot_semaforos(ax, semaforos, plot_text = True):
     for s in semaforos:
+        if len(s.throughput) == 0:
+            tp = 0
+        else:
+            tp = s.throughput[-1]
+
         circle = plt.Circle(s.pos, s.r, color=s.color)
         ax.add_patch(circle)
-        ax.text(s.text_pos[0], s.text_pos[1], f"queue: {s.queue}", fontsize=24, color="black")
-        ax.text(s.text_pos2[0], s.text_pos2[1], f"tp: {s.throughput[-1]}", fontsize=24, color="black")
-        ax.text(s.text_pos3[0], s.text_pos3[1], f"w: {s.wait_time()}", fontsize=24, color="black")
+
+        if plot_text:
+            ax.text(s.text_pos[0], s.text_pos[1], f"queue: {s.queue}", fontsize=24, color="black")
+            ax.text(s.text_pos2[0], s.text_pos2[1], f"tp: {tp}", fontsize=24, color="black")
+            ax.text(s.text_pos3[0], s.text_pos3[1], f"w: {s.wait_time()}", fontsize=24, color="black")

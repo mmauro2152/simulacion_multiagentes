@@ -6,6 +6,8 @@ from datetime import datetime
 from utils.model import car_model
 import json
 
+size = 500
+
 def save_data(model:car_model, filename:str):
     data = model.get_data()
 
@@ -22,7 +24,7 @@ def save_data(model:car_model, filename:str):
         json.dump(data, f, indent=4)
     
 def plot_animation(model:car_model, ax):
-    plot_map(ax)
+    plot_map(ax, size)
     plot_semaforos(ax, model.semaforos_manager.semaforos)
     for r in model.routes[model.semaforos_manager.active]:
         ax.plot(r.x, r.y, model.route_colors[model.semaforos_manager.active], linestyle="--", linewidth=0.4)
@@ -40,13 +42,13 @@ def run_animation():
     fig.set_dpi(100)
     fig.set_size_inches(50, 50)
 
-    follow_sequence = True
+    follow_sequence = False
 
     params = {
         "steps": 2000, 
         "size": size, 
         "lane_width": lane_width,
-        "mode": "fixed",
+        "mode": "qlearning",
         "follow_sequence": follow_sequence
     }
     
@@ -57,11 +59,11 @@ def run_animation():
     print(f"starting time:      {start_time_str}")
 
     anim = ap.animate(model, fig, ax, plot_animation)
-    model.end_time = datetime.now()
 
     m = params["mode"]
-    filename = f"{m} {str(follow_sequence)}"
+    filename = f"data & animations/{m} {str(follow_sequence)} x"
     anim.save(f"{filename}.mp4")
+    model.end_time = datetime.now()
 
     save_data(model, filename)
 

@@ -13,7 +13,7 @@ class semaforo_agent(Agent):
         self.env = env
         self.pos = pos
         self.text_pos = text_pos
-        self.throughput = [0]
+        self.throughput = []
         self.avg_waiting_times = []
         self.max_waiting_times = []
         self.queues = []
@@ -71,31 +71,11 @@ class semaforo_agent(Agent):
             "avg_wait_times": self.avg_waiting_times,
             "max_wait_times": self.max_waiting_times,
             "queues": self.queues,
+            "tp_overtime": self.throughput,
             "total_tp": sum(self.throughput)
         }
 
 class semaforo_manager(Agent):
-
-    # Q values
-
-    follow_sequence = True
-    Q = [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
-    ] if not follow_sequence else [
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0]
-    ]
-
-    # Semaforos N E S W
-    S = [0, 1, 2, 3]
-
-    A = [0, 1, 2, 3] if not follow_sequence else [0, 1]
-    
 
     def setup(self, env:car_space, semaforos:List[semaforo_agent]):
         self.active = 0
@@ -115,6 +95,24 @@ class semaforo_manager(Agent):
         self.epsilon = 0.5
 
         self.semaforos[0].color = self.colors[0]
+        self.follow_sequence = self.p["follow_sequence"]
+
+        self.Q = [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ] if self.follow_sequence == False else [
+            [0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 0]
+        ]
+
+        # Semaforos N E S W
+        self.S = [0, 1, 2, 3]
+
+        self.A = [0, 1, 2, 3] if self.follow_sequence == False else [0, 1]
 
     def use_q_learning(self):
         curr_step = self.model.t
@@ -234,32 +232,48 @@ class semaforo_manager(Agent):
         # return -(queue_w * q + waits_w * w)# + change_w * change
 
         # Observables from simulator
-        Q_t = sum([smf.queue for smf in self.semaforos])                  # total vehicles waiting
-        H_t = max([smf.wait_time() for smf in self.semaforos])     # use max across approaches
-        T_t = self.semaforos[self.s].throughput[-1]                # vehicles discharged this step
-        phase_changed = int(s_prime != self.s)
+        # Q_t = sum([smf.queue for smf in self.semaforos])                  # total vehicles waiting
+        # H_t = max([smf.wait_time() for smf in self.semaforos])     # use max across approaches
+        # T_t = self.semaforos[self.s].throughput[-1]                # vehicles discharged this step
+        # phase_changed = int(s_prime != self.s)
 
-        # Normalization constants (tune to your scenario)
-        Q_max, H_max, T_max = 30.0, 100.0, 30.0
+        # # Normalization constants (tune to your scenario)
+        # Q_max, H_max, T_max = 30.0, 100.0, 30.0
 
-        Q_n = Q_t / Q_max
-        H_n = H_t / H_max
-        T_n = T_t / T_max
+        # Q_n = Q_t / Q_max
+        # H_n = H_t / H_max
+        # T_n = T_t / T_max
 
-        # Weights (baseline)
-        w_q, w_h, w_tp, w_c, w_s = 1.0, 0.7, 1.2, 0.2, 2.0
-        Wcap_n = 60.0 / H_max   # normalized starvation cap
+        # # Weights (baseline)
+        # w_q, w_h, w_tp, w_c, w_s = 1.0, 0.7, 1.2, 0.2, 2.0
+        # Wcap_n = 60.0 / H_max   # normalized starvation cap
 
-        # Reward
-        r = -(w_q * Q_n + w_h * H_n) + w_tp * T_n \
-            - w_c * phase_changed \
-            - w_s * max(0.0, H_n - Wcap_n)
+        # # Reward
+        # r = -(w_q * Q_n + w_h * H_n) + w_tp * T_n \
+        #     - w_c * phase_changed \
+        #     - w_s * max(0.0, H_n - Wcap_n)
 
-        if self.epsilon > 0.1:
-            # Clip
-            r = max(-2.0, min(2.0, r))
+        # if self.epsilon > 0.1:
+        #     # Clip
+        #     r = max(-2.0, min(2.0, r))
 
-        return r
+        # return r
+
+        if sum(self.semaforos[self.s].throughput) != 0:
+            TP = sum(self.semaforos[self.s].throughput) / len(self.semaforos[self.s].throughput)
+
+        else:
+            TP = 30
+
+        Q = sum([smf.queue for smf in self.semaforos])
+        W = max([smf.wait_time() for smf in self.semaforos])
+
+        wTP = 1
+        wQ = -1.2
+        wW = -0.2
+
+        return (wTP * TP) + (wQ * Q) + (wW * W)
+
 
     def get_data(self):
         return [smf.get_data() for smf in self.semaforos]
